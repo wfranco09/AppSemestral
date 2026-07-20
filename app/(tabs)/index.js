@@ -1,35 +1,12 @@
-//import ANIMALS from '@/utils/animalAssets';
+import { ANIMALS } from '@/utils/animalAssets';
 import { useRouter } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function InicioScreen() {
-  const router = useRouter();
-
-const ANIMALS = [
-  {
-    id: "dino",
-    label: "Dinosaurio",
-    image: require("@/assets/images/Dino.jpg"),
-  },
-  {
-    id: "koala",
-    label: "Koala",
-    image: require("@/assets/images/Koala.jpg"),
-  },
-  {
-    id: "gato",
-    label: "Gato",
-    image: require("@/assets/images/Gato.jpg"),
-  },
-  {
-    id: "leon",
-    label: "León",
-    image: require("@/assets/images/Leon.png"),
-  },
-];
 
 export default function InicioScreen() {
   const router = useRouter();
+
+  
 
   return (
     <ScrollView

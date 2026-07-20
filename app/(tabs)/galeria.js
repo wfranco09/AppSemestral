@@ -57,7 +57,7 @@ export default function GaleriaScreen() {
           setLoaded(true);
 
         } catch (err) {
-          console.error('❌ Error cargando dibujos:', err);
+          console.error(' Error cargando dibujos:', err);
 
           setLoaded(true);
         }
@@ -66,7 +66,10 @@ export default function GaleriaScreen() {
   );
 
   function abrirDibujo(dibujo) {
-    router.push({ pathname: '/draw', params: { drawingId: dibujo.id } });
+    router.push({
+      pathname: '/draw',
+      params: { drawingId: dibujo.id, animal: dibujo.animalId },
+    });
   }
 
   function confirmarBorrar(dibujo) {
@@ -99,7 +102,7 @@ export default function GaleriaScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tu galería</Text>
+      <Text style={styles.title}>Tus dibujos</Text>
       <FlatList
         data={dibujos}
         keyExtractor={(item) => item.id}

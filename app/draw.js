@@ -1,4 +1,5 @@
 import { getDrawingById, saveDrawing } from "@/utils/drawings";
+import { exitDrawing } from "@/utils/navigation";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -20,21 +21,29 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, Mask, Path, Rect } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
 
-const { width, height } = Dimensions.get("window");
 
-const ANIMAL_ID = "dino";
-const ANIMAL_LABEL = "Dinosaurio";
+
+const { width, height } = Dimensions.get("window");
 
 const CANVAS_HEIGHT = height * 0.4;
 const MIN_SIZE = 2;
 const MAX_SIZE = 30;
 const SLIDER_WIDTH = 200;
 
+
+const ANIMAL_LABELS = {
+  dino: "Dinosaurio",
+  koala: "Koala",
+  gato: "Gato",
+  leon: "León",
+  libre: "Libre",
+};
+
 // ---- Imágenes por animal ----
 // "libre" no tiene imagen de fondo a propósito: es el lienzo en blanco.
 const ANIMAL_IMAGES = {
   dino: require("@/assets/images/Dino.jpg"),
-  koala: require("@/assets/images/Koala.jpg"),
+  koala: require("@/assets/images/koala.jpg"),
   gato: require("@/assets/images/Gato.jpg"),
   leon: require("@/assets/images/Leon.png"),
   libre: null,
@@ -49,24 +58,6 @@ const ANIMAL_TITLES = {
   libre: require("@/assets/images/ColorearText.png"),
 };
 
-// ---- Imágenes por animal ----
-// "libre" no tiene imagen de fondo a propósito: es el lienzo en blanco.
-const ANIMAL_IMAGES = {
-  dino: require("@/assets/images/Dino.jpg"),
-  koala: require("@/assets/images/Koala.jpg"),
-  gato: require("@/assets/images/Gato.jpg"),
-  leon: require("@/assets/images/Leon.png"),
-  libre: null,
-};
-
-const ANIMAL_TITLES = {
-  dino: require("@/assets/images/Dinotext.png"),
-  koala: require("@/assets/images/KoalaText1.png"),
-  gato: require("@/assets/images/GatoText.png"),
-  leon: require("@/assets/images/LeonText.png"),
-  // Cambia esta ruta por el nombre real de tu imagen de título "Colorear"
-  libre: require("@/assets/images/ColorearText.png"),
-};
 
 
 function SizeSlider({ size, setSize }) {
@@ -114,12 +105,12 @@ function SizeSlider({ size, setSize }) {
   );
 }
 
+
 export default function DrawScreen() {
   const router = useRouter();
   const { drawingId } = useLocalSearchParams();
   const [currentDrawingId, setCurrentDrawingId] = useState(drawingId ?? null);
   const canvasRef = useRef(null);
-
   const { animal } = useLocalSearchParams();
 
   const animalKey = Array.isArray(animal) ? animal[0] : animal;
@@ -144,6 +135,7 @@ export default function DrawScreen() {
   const [tool, setTool] = useState("none");
   const [selectedColor, setSelectedColor] = useState("#E24B4A");
   const [brushSize, setBrushSize] = useState(7);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [currentStroke, setCurrentStroke] = useState([]);
   const [strokes, setStrokes] = useState([]);
@@ -158,6 +150,7 @@ export default function DrawScreen() {
         setStrokes(dibujo.strokes ?? []);
         setEraserStrokes(dibujo.eraserStrokes ?? []);
         setCurrentDrawingId(dibujo.id);
+        setHasUnsavedChanges(false);
       }
     })();
   }, [drawingId]);
@@ -183,6 +176,14 @@ export default function DrawScreen() {
     return (
       `M ${first.x} ${first.y} ` + rest.map((p) => `L ${p.x} ${p.y}`).join(" ")
     );
+  }
+
+  function handleExit(route) {
+    if (hasUnsavedChanges) {
+      exitDrawing(router, route); // muestra la alerta de confirmación
+    } else {
+      router.push(route); // sale directo, no hay nada que perder
+    }
   }
 
   function onGestureEvent(event) {
@@ -213,6 +214,7 @@ export default function DrawScreen() {
         },
       ]);
       setCurrentStroke([]);
+      setHasUnsavedChanges(true);
     }
 
     if (tool === "eraser") {
@@ -229,6 +231,7 @@ export default function DrawScreen() {
         },
       ]);
       setCurrentEraserStroke([]);
+      setHasUnsavedChanges(true);
     }
   }
 
@@ -254,7 +257,7 @@ export default function DrawScreen() {
       return;
     }
 
-    console.log('🖼️ Iniciando guardado...');
+    console.log('Iniciando guardado...');
 
     let thumbnailUri = null;
     const idParaGuardar = currentDrawingId ?? Date.now().toString();
@@ -271,52 +274,64 @@ export default function DrawScreen() {
         result: "tmpfile",
       });
 
-      console.log('📸 Resultado de captureRef:', result);
+      console.log('Resultado de captureRef:', result);
 
       if (result) {
         // Asegurar que el directorio existe
         const dirInfo = await FileSystem.getInfoAsync(DIBUJOS_DIR, { md5: false, size: false });
         if (!dirInfo.exists) {
-          console.log('📁 Creando directorio:', DIBUJOS_DIR);
+          console.log('Creando directorio:', DIBUJOS_DIR);
           await FileSystem.makeDirectoryAsync(DIBUJOS_DIR, { intermediates: true });
         }
 
-        thumbnailUri = DIBUJOS_DIR + idParaGuardar + ".png";
-        console.log('📁 Copiando a:', thumbnailUri);
+        thumbnailUri = DIBUJOS_DIR + idParaGuardar + "-" + Date.now() + ".png";
+        console.log('Copiando a:', thumbnailUri);
 
         await FileSystem.copyAsync({
           from: result,
           to: thumbnailUri
         });
 
+        // Si ya existía un dibujo con una miniatura anterior, la borramos
+        if (currentDrawingId) {
+          const dibujoAnterior = await getDrawingById(currentDrawingId);
+          if (dibujoAnterior?.thumbnailUri && dibujoAnterior.thumbnailUri !== thumbnailUri) {
+            try {
+              await FileSystem.deleteAsync(dibujoAnterior.thumbnailUri, { idempotent: true });
+            } catch (e) {
+              console.warn("No se pudo borrar la miniatura anterior:", e);
+            }
+          }
+        }
+
         // Verificar que se guardó
         const savedFile = await FileSystem.getInfoAsync(thumbnailUri, { md5: false, size: true });
-        console.log('✅ Archivo guardado:', {
+        console.log('Archivo guardado:', {
           exists: savedFile.exists,
           size: savedFile.exists ? savedFile.size : 0,
           uri: thumbnailUri
         });
 
         if (!savedFile.exists) {
-          console.error('❌ El archivo no se guardó correctamente');
+          console.error('El archivo no se guardó correctamente');
           thumbnailUri = null;
         }
       } else {
-        console.error('❌ captureRef no devolvió resultado');
+        console.error('captureRef no devolvió resultado');
       }
     } catch (e) {
-      console.error("❌ Error:", e);
-      console.error("❌ Mensaje:", e?.message);
-      console.error("❌ Stack:", e?.stack);
+      console.error("Error:", e);
+      console.error("Mensaje:", e?.message);
+      console.error("Stack:", e?.stack);
     }
 
-    console.log('💾 Guardando dibujo con thumbnailUri:', thumbnailUri);
+    console.log('Guardando dibujo con thumbnailUri:', thumbnailUri);
 
     try {
       const guardado = await saveDrawing({
         id: idParaGuardar,
-        animalId: ANIMAL_ID,
-        animalLabel: ANIMAL_LABEL,
+        animalId: animalKey || "dino",
+        animalLabel: ANIMAL_LABELS[animalKey] || ANIMAL_LABELS.dino,
         strokes,
         eraserStrokes,
         canvasWidth: width,
@@ -324,18 +339,20 @@ export default function DrawScreen() {
         thumbnailUri,
       });
 
-      console.log('✅ Dibujo guardado exitosamente:', guardado.id);
+      console.log('Dibujo guardado exitosamente:', guardado.id);
 
       setCurrentDrawingId(guardado.id);
+      setHasUnsavedChanges(false);
       Alert.alert("¡Guardado!", "Tu dibujo quedó en la galería.", [
         { text: "Seguir pintando", style: "cancel" },
-        { text: "Ir a la galería", onPress: () => router.push("/(tabs)/galeria") },
+        { text: "Ir a la galería", onPress: () => router.push("/galeria") },
       ]);
     } catch (e) {
-      console.error("❌ Error:", e);
-      console.error("❌ Mensaje:", e?.message);
-      console.error("❌ Stack:", e?.stack);
+      console.error("Error:", e);
+      console.error("Mensaje:", e?.message);
+      console.error("Stack:", e?.stack);
     }
+
   }
 
   return (
@@ -422,20 +439,41 @@ export default function DrawScreen() {
         )}
 
         <View style={styles.dinoContainer}>
-          <View style={{ width, height: CANVAS_HEIGHT, position: "relative" }}>
-            {/* ========= CAPA 1 ========= */}
-            <Image
-              source={require("@/assets/images/Dino.jpg")}
-              style={{ position: "absolute", width, height: CANVAS_HEIGHT }}
-              resizeMode="contain"
-            />
+          <View
+            ref={canvasRef}
+            collapsable={false}
+            style={{
+              width,
+              height: CANVAS_HEIGHT,
+              position: "relative",
+            }}
+          >
+            {/* Imagen de fondo (si existe) */}
+            {selectedImage && (
+              <Image
+                source={selectedImage}
+                style={{
+                  position: "absolute",
+                  width,
+                  height: CANVAS_HEIGHT,
+                }}
+                resizeMode="contain"
+              />
+            )}
 
             <PanGestureHandler
               enabled={tool !== "none"}
               onGestureEvent={onGestureEvent}
               onEnded={onGestureEnd}
             >
-              <View style={{ position: "absolute", width, height: CANVAS_HEIGHT }}>
+              <View
+                collapsable={false}
+                style={{
+                  position: "absolute",
+                  width,
+                  height: CANVAS_HEIGHT,
+                }}
+              >
                 <Svg width={width} height={CANVAS_HEIGHT}>
                   <Defs>
                     {strokes.map((stroke) => {
@@ -554,7 +592,10 @@ export default function DrawScreen() {
         </View>
 
         <View style={styles.bottomNav}>
-          <TouchableOpacity style={styles.navBtn}>
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={() => handleExit("/")}
+          >
             <Image
               source={require("@/assets/images/inicio1.png")}
               style={styles.navIcon}
@@ -562,20 +603,17 @@ export default function DrawScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.navBtn}
-            onPress={() => router.push("/(tabs)/galeria")}
+            onPress={() => handleExit("/galeria")}
           >
-            <Image
-              source={require("@/assets/images/inicio1.png")}
-              style={styles.navIcon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navBtn}>
             <Image
               source={require("@/assets/images/galeria.png")}
               style={styles.navIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navBtn}>
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={() => handleExit("/perfil")}
+          >
             <Image
               source={require("@/assets/images/user.png")}
               style={styles.navIcon}
