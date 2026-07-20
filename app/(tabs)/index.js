@@ -1,37 +1,52 @@
-import { useRouter } from 'expo-router';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from "expo-router";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const ANIMALS = [
-  { id: 'dino', label: 'Dinosaurio', image: require('@/assets/images/Dino.jpg') },
-  { id: 'koala', label: 'koala', image: require('@/assets/images/Dino.jpg') },
-  { id: 'gato', label: 'Gato', image: require('@/assets/images/Dino.jpg') },
-  { id: 'leon', label: 'León', image: require('@/assets/images/Dino.jpg') },
+  {
+    id: "dino",
+    label: "Dinosaurio",
+    image: require("@/assets/images/Dino.jpg"),
+  },
+  {
+    id: "koala",
+    label: "Koala",
+    image: require("@/assets/images/Koala.jpg"),
+  },
+  {
+    id: "gato",
+    label: "Gato",
+    image: require("@/assets/images/Gato.jpg"),
+  },
+  {
+    id: "leon",
+    label: "León",
+    image: require("@/assets/images/Leon.png"),
+  },
 ];
 
 export default function InicioScreen() {
   const router = useRouter();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.header}>
-                <Image
-                  source={require("@/assets/images/logo-kidintime.png")}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-                <TouchableOpacity
-                  onPress={() => {
-                    clearCanvas();
-                    setTool("none");
-                  }}
-                >
-                  <Image
-                    source={require("@/assets/images/partial-react-logo.png")}
-                    style={styles.closeIcon}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-              </View>
+        <Image
+          source={require("@/assets/images/logo-kidintime.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+
       <Text style={styles.title}>Pinta a tu animal favorito</Text>
 
       <View style={styles.grid}>
@@ -40,26 +55,51 @@ export default function InicioScreen() {
             key={animal.id}
             style={styles.card}
             onPress={() =>
-              router.push({ pathname: '/draw', params: { animal: animal.id } })
+              router.push({
+                pathname: "/draw",
+                params: {
+                  animal: animal.id,
+                },
+              })
             }
           >
-            <Image source={animal.image} style={styles.cardImage} resizeMode="contain" />
+            <Image
+              source={animal.image}
+              style={styles.cardImage}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         ))}
       </View>
-      
+
       <Text style={styles.relleno}>Lienzo en blanco para expandir tu creatividad</Text>
 
-      <View style={styles.banner}>
-        <View style={styles.bannerImageBox} /> 
-        <Text style={styles.relleno}>Crrea, colorea y divierte con nuestro</Text>
-      </View>
+      <TouchableOpacity
+        style={styles.banner}
+        onPress={() =>
+          router.push({
+            pathname: "/draw",
+            params: {
+              animal: "libre",
+            },
+          })
+        }
+      >
+        <View style={styles.bannerImageBox}>
+          <Image
+            source={require("@/assets/images/lapiz.png")}
+            style={styles.bannerIcon}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.bannerText}>Crea, colorea y diviértete con tu propio lienzo</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { alignItems: 'center', paddingBottom: 30 },
   header: {
     width: "100%",
@@ -107,14 +147,22 @@ const styles = StyleSheet.create({
     width: '80%',
     gap: 14,
     marginTop: 18,
-  },
-  bannerImageBox: {
-    width: 70,
-    height: 70,
     borderWidth: 2,
     borderColor: '#378ADD',
     borderRadius: 10,
+    padding: 12,
   },
+  bannerImageBox: {
+    width: 60,
+    height: 60,
+    borderWidth: 2,
+    borderColor: '#378ADD',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerIcon: { width: 34, height: 34 },
+  bannerText: { flex: 1, fontSize: 13, color: '#444', fontWeight: '500' },
   bannerLines: { flex: 1, gap: 8 },
   bannerLine: { height: 6, borderRadius: 3, backgroundColor: '#222' },
 });
