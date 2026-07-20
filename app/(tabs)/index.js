@@ -1,15 +1,16 @@
+//import ANIMALS from '@/utils/animalAssets';
 import { useRouter } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const ANIMALS = [
-  { id: 'dino', label: 'Dinosaurio', image: require('@/assets/images/Dino.jpg') },
-  { id: 'koala', label: 'koala', image: require('@/assets/images/Dino.jpg') },
-  { id: 'gato', label: 'Gato', image: require('@/assets/images/Dino.jpg') },
-  { id: 'leon', label: 'León', image: require('@/assets/images/Dino.jpg') },
-];
-
 export default function InicioScreen() {
   const router = useRouter();
+
+  const ANIMALS = [
+    { id: 'dino', label: 'Dinosaurio', image: require('@/assets/images/Dino.jpg') },
+    { id: 'koala', label: 'koala', image: require('@/assets/images/Dino.jpg') },
+    { id: 'gato', label: 'Gato', image: require('@/assets/images/Dino.jpg') },
+    { id: 'leon', label: 'León', image: require('@/assets/images/Dino.jpg') },
+  ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -19,18 +20,6 @@ export default function InicioScreen() {
                   style={styles.logo}
                   resizeMode="contain"
                 />
-                <TouchableOpacity
-                  onPress={() => {
-                    clearCanvas();
-                    setTool("none");
-                  }}
-                >
-                  <Image
-                    source={require("@/assets/images/partial-react-logo.png")}
-                    style={styles.closeIcon}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
               </View>
       <Text style={styles.title}>Pinta a tu animal favorito</Text>
 

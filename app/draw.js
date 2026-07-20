@@ -1,9 +1,14 @@
-import { useRef, useState } from "react";
+import { getDrawingById, saveDrawing } from "@/utils/drawings";
+import * as FileSystem from "expo-file-system/legacy";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   PanResponder,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -13,16 +18,18 @@ import {
 } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, Mask, Path, Rect } from "react-native-svg";
+import { captureRef } from "react-native-view-shot";
 
 const { width, height } = Dimensions.get("window");
 
-const CANVAS_HEIGHT = height * 0.4;
+const ANIMAL_ID = "dino";
+const ANIMAL_LABEL = "Dinosaurio";
 
+const CANVAS_HEIGHT = height * 0.4;
 const MIN_SIZE = 2;
 const MAX_SIZE = 30;
 const SLIDER_WIDTH = 200;
 
-// ---- Slider de grosor (lápiz / borrador) ----
 function SizeSlider({ size, setSize }) {
   const barX = useRef(0);
   const barRef = useRef(null);
@@ -69,17 +76,31 @@ function SizeSlider({ size, setSize }) {
 }
 
 export default function DrawScreen() {
+  const router = useRouter();
+  const { drawingId } = useLocalSearchParams();
+  const [currentDrawingId, setCurrentDrawingId] = useState(drawingId ?? null);
+  const canvasRef = useRef(null);
+
   const [tool, setTool] = useState("none");
   const [selectedColor, setSelectedColor] = useState("#E24B4A");
   const [brushSize, setBrushSize] = useState(7);
 
-  // Trazos de lápiz
   const [currentStroke, setCurrentStroke] = useState([]);
   const [strokes, setStrokes] = useState([]);
-
-  // Trazos de borrador (se usan como máscara, no se pintan directo)
   const [currentEraserStroke, setCurrentEraserStroke] = useState([]);
   const [eraserStrokes, setEraserStrokes] = useState([]);
+
+  useEffect(() => {
+    if (!drawingId) return;
+    (async () => {
+      const dibujo = await getDrawingById(drawingId);
+      if (dibujo) {
+        setStrokes(dibujo.strokes ?? []);
+        setEraserStrokes(dibujo.eraserStrokes ?? []);
+        setCurrentDrawingId(dibujo.id);
+      }
+    })();
+  }, [drawingId]);
 
   const colors = [
     "#E24B4A",
@@ -158,38 +179,139 @@ export default function DrawScreen() {
     setEraserStrokes([]);
   }
 
+  const DIBUJOS_DIR = FileSystem.documentDirectory + "dibujos/";
+
+  async function asegurarCarpetaDibujos() {
+    const info = await FileSystem.getInfoAsync(DIBUJOS_DIR, { md5: false, size: false });
+    if (!info.exists) {
+      await FileSystem.makeDirectoryAsync(DIBUJOS_DIR, { intermediates: true });
+    }
+  }
+
+  async function guardarDibujo() {
+    if (strokes.length === 0) {
+      Alert.alert("Nada que guardar", "Pinta un poco antes de guardar tu dibujo.");
+      return;
+    }
+
+    console.log('🖼️ Iniciando guardado...');
+
+    let thumbnailUri = null;
+    const idParaGuardar = currentDrawingId ?? Date.now().toString();
+
+    try {
+      console.log('📸 Intentando capturar canvas...');
+      console.log("canvasRef:", canvasRef);
+      console.log("canvasRef.current:", canvasRef.current);
+
+      // Intenta capturar el canvas
+      const result = await captureRef(canvasRef.current, {
+        format: "png",
+        quality: 0.9,
+        result: "tmpfile",
+      });
+
+      console.log('📸 Resultado de captureRef:', result);
+
+      if (result) {
+        // Asegurar que el directorio existe
+        const dirInfo = await FileSystem.getInfoAsync(DIBUJOS_DIR, { md5: false, size: false });
+        if (!dirInfo.exists) {
+          console.log('📁 Creando directorio:', DIBUJOS_DIR);
+          await FileSystem.makeDirectoryAsync(DIBUJOS_DIR, { intermediates: true });
+        }
+
+        thumbnailUri = DIBUJOS_DIR + idParaGuardar + ".png";
+        console.log('📁 Copiando a:', thumbnailUri);
+
+        await FileSystem.copyAsync({
+          from: result,
+          to: thumbnailUri
+        });
+
+        // Verificar que se guardó
+        const savedFile = await FileSystem.getInfoAsync(thumbnailUri, { md5: false, size: true });
+        console.log('✅ Archivo guardado:', {
+          exists: savedFile.exists,
+          size: savedFile.exists ? savedFile.size : 0,
+          uri: thumbnailUri
+        });
+
+        if (!savedFile.exists) {
+          console.error('❌ El archivo no se guardó correctamente');
+          thumbnailUri = null;
+        }
+      } else {
+        console.error('❌ captureRef no devolvió resultado');
+      }
+    } catch (e) {
+      console.error("❌ Error:", e);
+      console.error("❌ Mensaje:", e?.message);
+      console.error("❌ Stack:", e?.stack);
+    }
+
+    console.log('💾 Guardando dibujo con thumbnailUri:', thumbnailUri);
+
+    try {
+      const guardado = await saveDrawing({
+        id: idParaGuardar,
+        animalId: ANIMAL_ID,
+        animalLabel: ANIMAL_LABEL,
+        strokes,
+        eraserStrokes,
+        canvasWidth: width,
+        canvasHeight: CANVAS_HEIGHT,
+        thumbnailUri,
+      });
+
+      console.log('✅ Dibujo guardado exitosamente:', guardado.id);
+
+      setCurrentDrawingId(guardado.id);
+      Alert.alert("¡Guardado!", "Tu dibujo quedó en la galería.", [
+        { text: "Seguir pintando", style: "cancel" },
+        { text: "Ir a la galería", onPress: () => router.push("/(tabs)/galeria") },
+      ]);
+    } catch (e) {
+      console.error("❌ Error:", e);
+      console.error("❌ Mensaje:", e?.message);
+      console.error("❌ Stack:", e?.stack);
+    }
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <Image
             source={require("@/assets/images/logo-kidintime.png")}
             style={styles.logo}
             resizeMode="contain"
           />
-          <TouchableOpacity
-            onPress={() => {
-              clearCanvas();
-              setTool("none");
-            }}
-          >
-            <Image
-              source={require("@/assets/images/partial-react-logo.png")}
-              style={styles.closeIcon}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.saveBtn} onPress={guardarDibujo}>
+              <Text style={styles.saveBtnText}>Guardar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                clearCanvas();
+                setTool("none");
+              }}
+            >
+              <Image
+                source={require("@/assets/images/partial-react-logo.png")}
+                style={styles.closeIcon}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Título */}
         <Image
           source={require("@/assets/images/Dinotext.png")}
           style={styles.titulo}
           resizeMode="contain"
         />
 
-        {/* Herramientas */}
         <View style={styles.tools}>
           <TouchableOpacity onPress={() => selectTool("pencil")}>
             <Image
@@ -218,7 +340,6 @@ export default function DrawScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Colores */}
         {tool === "pencil" && (
           <View style={styles.palette}>
             {colors.map((c) => (
@@ -235,22 +356,22 @@ export default function DrawScreen() {
           </View>
         )}
 
-        {/* Slider de grosor: aparece con lápiz o borrador */}
         {(tool === "pencil" || tool === "eraser") && (
           <SizeSlider size={brushSize} setSize={setBrushSize} />
         )}
 
-        {/* Zona de dibujo */}
         <View style={styles.dinoContainer}>
-          <View style={{ width, height: CANVAS_HEIGHT, position: "relative" }}>
-            {/* ========= CAPA 1 ========= */}
+          <View
+            ref={canvasRef}
+            style={{ width, height: CANVAS_HEIGHT, position: "relative" }}
+            collapsable={false}
+          >
             <Image
               source={require("@/assets/images/Dino.jpg")}
               style={{ position: "absolute", width, height: CANVAS_HEIGHT }}
               resizeMode="contain"
             />
 
-            {/* ========= CAPA 2 ========= */}
             <PanGestureHandler
               enabled={tool !== "none"}
               onGestureEvent={onGestureEvent}
@@ -259,17 +380,6 @@ export default function DrawScreen() {
               <View style={{ position: "absolute", width, height: CANVAS_HEIGHT }}>
                 <Svg width={width} height={CANVAS_HEIGHT}>
                   <Defs>
-                    {/*
-                      FIX: antes había UNA sola máscara global que tapaba
-                      TODOS los trazos del lápiz (pasados y futuros) en las
-                      zonas borradas. Por eso, al borrar, ya no se podía
-                      pintar de nuevo ahí.
-
-                      Ahora cada trazo tiene su propia máscara que solo
-                      contiene los borrones que ocurrieron DESPUÉS de que
-                      ese trazo fue dibujado. Así, si pintas de nuevo sobre
-                      una zona ya borrada, el nuevo trazo se ve con normalidad.
-                    */}
                     {strokes.map((stroke) => {
                       const relevantErasers = eraserStrokes.filter(
                         (e) => e.id > stroke.id
@@ -308,7 +418,6 @@ export default function DrawScreen() {
                       );
                     })}
 
-                    {/* Máscara para el trazo que se está dibujando ahora mismo */}
                     {currentStroke.length > 1 && eraserStrokes.length > 0 && (
                       <Mask
                         id="mask-current"
@@ -340,7 +449,6 @@ export default function DrawScreen() {
                     )}
                   </Defs>
 
-                  {/* Trazos guardados, cada uno con su propia máscara (si aplica) */}
                   {strokes.map((stroke) => {
                     const hasMask = eraserStrokes.some((e) => e.id > stroke.id);
                     return (
@@ -357,7 +465,6 @@ export default function DrawScreen() {
                     );
                   })}
 
-                  {/* Trazo de lápiz en vivo */}
                   {currentStroke.length > 1 && (
                     <Path
                       d={pointsToPath(currentStroke)}
@@ -370,7 +477,6 @@ export default function DrawScreen() {
                     />
                   )}
 
-                  {/* Vista previa del borrador mientras se usa (no afecta nada hasta soltar) */}
                   {currentEraserStroke.length > 1 && (
                     <Path
                       d={pointsToPath(currentEraserStroke)}
@@ -389,9 +495,17 @@ export default function DrawScreen() {
           <View style={styles.grass} />
         </View>
 
-        {/* Barra inferior */}
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navBtn}>
+            <Image
+              source={require("@/assets/images/partial-react-logo.png")}
+              style={styles.navIcon}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={() => router.push("/(tabs)/galeria")}
+          >
             <Image
               source={require("@/assets/images/partial-react-logo.png")}
               style={styles.navIcon}
@@ -426,9 +540,17 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   logo: { width: 150, height: 80, top: -25 },
-  closeIcon: { width: 36, height: 36, top: -25 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 10, top: -25 },
+  saveBtn: {
+    backgroundColor: "#378ADD",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  saveBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  closeIcon: { width: 36, height: 36 },
   titulo: { width: width * 0.80, height: 100, marginTop: -45 },
-  tools: { flexDirection: "row", gap: 29, marginTop: -10, marginBottom:1 },
+  tools: { flexDirection: "row", gap: 29, marginTop: -10, marginBottom: 1 },
   toolIcon: { width: 55, height: 55, opacity: 0.5 },
   toolActive: { opacity: 1, transform: [{ scale: 1.15 }] },
   palette: { flexDirection: "row", gap: 10, marginVertical: 14, marginBottom: 20 },
@@ -466,7 +588,7 @@ const styles = StyleSheet.create({
     height: 35,
     backgroundColor: "#7BC67E",
     borderTopLeftRadius: 60,
-    borderTopRightRadius: 60 ,
+    borderTopRightRadius: 60,
   },
   bottomNav: {
     flexDirection: "row",
