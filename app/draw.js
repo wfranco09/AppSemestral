@@ -30,6 +30,45 @@ const MIN_SIZE = 2;
 const MAX_SIZE = 30;
 const SLIDER_WIDTH = 200;
 
+// ---- Imágenes por animal ----
+// "libre" no tiene imagen de fondo a propósito: es el lienzo en blanco.
+const ANIMAL_IMAGES = {
+  dino: require("@/assets/images/Dino.jpg"),
+  koala: require("@/assets/images/Koala.jpg"),
+  gato: require("@/assets/images/Gato.jpg"),
+  leon: require("@/assets/images/Leon.png"),
+  libre: null,
+};
+
+const ANIMAL_TITLES = {
+  dino: require("@/assets/images/Dinotext.png"),
+  koala: require("@/assets/images/KoalaText1.png"),
+  gato: require("@/assets/images/GatoText.png"),
+  leon: require("@/assets/images/LeonText.png"),
+  // Cambia esta ruta por el nombre real de tu imagen de título "Colorear"
+  libre: require("@/assets/images/ColorearText.png"),
+};
+
+// ---- Imágenes por animal ----
+// "libre" no tiene imagen de fondo a propósito: es el lienzo en blanco.
+const ANIMAL_IMAGES = {
+  dino: require("@/assets/images/Dino.jpg"),
+  koala: require("@/assets/images/Koala.jpg"),
+  gato: require("@/assets/images/Gato.jpg"),
+  leon: require("@/assets/images/Leon.png"),
+  libre: null,
+};
+
+const ANIMAL_TITLES = {
+  dino: require("@/assets/images/Dinotext.png"),
+  koala: require("@/assets/images/KoalaText1.png"),
+  gato: require("@/assets/images/GatoText.png"),
+  leon: require("@/assets/images/LeonText.png"),
+  // Cambia esta ruta por el nombre real de tu imagen de título "Colorear"
+  libre: require("@/assets/images/ColorearText.png"),
+};
+
+
 function SizeSlider({ size, setSize }) {
   const barX = useRef(0);
   const barRef = useRef(null);
@@ -80,6 +119,27 @@ export default function DrawScreen() {
   const { drawingId } = useLocalSearchParams();
   const [currentDrawingId, setCurrentDrawingId] = useState(drawingId ?? null);
   const canvasRef = useRef(null);
+
+  const { animal } = useLocalSearchParams();
+
+  const animalKey = Array.isArray(animal) ? animal[0] : animal;
+
+  // Si el animal no existe en el objeto, usamos "dino" por defecto.
+  // Si existe pero su valor es null (caso "libre"), respetamos ese null
+  // para no mostrar ninguna imagen de fondo.
+  const hasAnimalImage =
+    animalKey && Object.prototype.hasOwnProperty.call(ANIMAL_IMAGES, animalKey);
+
+  const selectedImage = hasAnimalImage
+    ? ANIMAL_IMAGES[animalKey]
+    : ANIMAL_IMAGES.dino;
+
+  const hasAnimalTitle =
+    animalKey && Object.prototype.hasOwnProperty.call(ANIMAL_TITLES, animalKey);
+
+  const selectedTitle = hasAnimalTitle
+    ? ANIMAL_TITLES[animalKey]
+    : ANIMAL_TITLES.dino;
 
   const [tool, setTool] = useState("none");
   const [selectedColor, setSelectedColor] = useState("#E24B4A");
@@ -306,8 +366,9 @@ export default function DrawScreen() {
           </View>
         </View>
 
+        {/* Título (dinámico según el animal) */}
         <Image
-          source={require("@/assets/images/Dinotext.png")}
+          source={selectedTitle}
           style={styles.titulo}
           resizeMode="contain"
         />
@@ -361,11 +422,8 @@ export default function DrawScreen() {
         )}
 
         <View style={styles.dinoContainer}>
-          <View
-            ref={canvasRef}
-            style={{ width, height: CANVAS_HEIGHT, position: "relative" }}
-            collapsable={false}
-          >
+          <View style={{ width, height: CANVAS_HEIGHT, position: "relative" }}>
+            {/* ========= CAPA 1 ========= */}
             <Image
               source={require("@/assets/images/Dino.jpg")}
               style={{ position: "absolute", width, height: CANVAS_HEIGHT }}
@@ -498,7 +556,7 @@ export default function DrawScreen() {
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navBtn}>
             <Image
-              source={require("@/assets/images/partial-react-logo.png")}
+              source={require("@/assets/images/inicio1.png")}
               style={styles.navIcon}
             />
           </TouchableOpacity>
@@ -507,19 +565,19 @@ export default function DrawScreen() {
             onPress={() => router.push("/(tabs)/galeria")}
           >
             <Image
-              source={require("@/assets/images/partial-react-logo.png")}
+              source={require("@/assets/images/inicio1.png")}
               style={styles.navIcon}
             />
           </TouchableOpacity>
           <TouchableOpacity style={styles.navBtn}>
             <Image
-              source={require("@/assets/images/partial-react-logo.png")}
+              source={require("@/assets/images/galeria.png")}
               style={styles.navIcon}
             />
           </TouchableOpacity>
           <TouchableOpacity style={styles.navBtn}>
             <Image
-              source={require("@/assets/images/partial-react-logo.png")}
+              source={require("@/assets/images/user.png")}
               style={styles.navIcon}
             />
           </TouchableOpacity>
