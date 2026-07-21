@@ -1,36 +1,81 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { getSavedUserName, saveUserName } from "@/utils/userSession";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-    Dimensions, Image, KeyboardAvoidingView,
-    Platform, StyleSheet, Text, TextInput,
-    TouchableOpacity, View
-} from 'react-native';
+  Alert,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export default function RegistroScreen() {
   const router = useRouter();
-  const [nombre, setNombre] = useState('');
+  const [nombre, setNombre] = useState("");
+  const [guardando, setGuardando] = useState(false);
 
-  const puedeContinuar = nombre.trim().length > 0;
+  const puedeContinuar = nombre.trim().length > 0 && !guardando;
+
+  useEffect(() => {
+    let active = true;
+
+    async function cargarNombre() {
+      const savedName = await getSavedUserName();
+
+      if (active && savedName) {
+        setNombre(savedName);
+      }
+    }
+
+    cargarNombre();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function continuar() {
+    if (!puedeContinuar) {
+      return;
+    }
+
+    try {
+      setGuardando(true);
+      await saveUserName(nombre);
+      router.replace("/inicio");
+    } catch (error) {
+      console.error("No se pudo guardar el nombre:", error);
+      Alert.alert(
+        "No se pudo guardar",
+        "Revisa el nombre e inténtalo nuevamente.",
+      );
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Fondo con animales arriba */}
       <View style={styles.fondoContainer}>
         <Image
-          source={require('@/assets/images/Bienvenida.png')}
+          source={require("@/assets/images/Bienvenida.png")}
           style={styles.fondo}
           resizeMode="cover"
         />
       </View>
 
-      {/* Formulario abajo: simple, grande, amigable */}
       <View style={styles.formContainer}>
-        <Text style={styles.pregunta}>¿Cómo te llamas? 🐾</Text>
+        <Text style={styles.pregunta}>Dinos tu nombre!</Text>
 
         <TextInput
           style={styles.input}
@@ -39,15 +84,21 @@ export default function RegistroScreen() {
           placeholder="Escribe tu nombre"
           placeholderTextColor="#aaa"
           autoFocus
+          autoCapitalize="words"
           maxLength={20}
+          returnKeyType="done"
+          onSubmitEditing={continuar}
         />
 
         <TouchableOpacity
           style={[styles.boton, !puedeContinuar && styles.botonDeshabilitado]}
           disabled={!puedeContinuar}
-          onPress={() => router.replace('/(tabs)')}
+          activeOpacity={0.8}
+          onPress={continuar}
         >
-          <Text style={styles.botonTexto}>¡Vamos a pintar! →</Text>
+          <Text style={styles.botonTexto}>
+            {guardando ? "Guardando..." : "¡Vamos a pintar! →"}
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -57,12 +108,12 @@ export default function RegistroScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   fondoContainer: {
     height: height * 0.45,
     width,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   fondo: {
     width,
@@ -72,41 +123,41 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 32,
     paddingTop: 32,
-    backgroundColor: '#fff',
-    alignItems: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
   },
   pregunta: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
+    fontWeight: "700",
+    color: "#333",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
-    width: '100%',
+    width: "100%",
     borderWidth: 3,
-    borderColor: '#378ADD',
+    borderColor: "#378ADD",
     borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 16,
     fontSize: 20,
-    color: '#333',
-    textAlign: 'center',
+    color: "#333",
+    textAlign: "center",
   },
   boton: {
     marginTop: 28,
-    width: '100%',
-    backgroundColor: '#378ADD',
+    width: "100%",
+    backgroundColor: "#378ADD",
     borderRadius: 16,
     paddingVertical: 18,
-    alignItems: 'center',
+    alignItems: "center",
   },
   botonDeshabilitado: {
-    backgroundColor: '#B5D4F4',
+    backgroundColor: "#B5D4F4",
   },
   botonTexto: {
     fontSize: 20,
-    color: '#fff',
-    fontWeight: '700',
+    color: "#fff",
+    fontWeight: "700",
   },
 });

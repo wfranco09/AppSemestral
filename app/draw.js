@@ -1,3 +1,4 @@
+import BottomNavBar from "@/components/BottomNavBar";
 import { getDrawingById, saveDrawing } from "@/utils/drawings";
 import { exitDrawing } from "@/utils/navigation";
 import * as FileSystem from "expo-file-system/legacy";
@@ -21,15 +22,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, Mask, Path, Rect } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
 
-
-
 const { width, height } = Dimensions.get("window");
 
 const CANVAS_HEIGHT = height * 0.4;
 const MIN_SIZE = 2;
 const MAX_SIZE = 30;
 const SLIDER_WIDTH = 200;
-
 
 const ANIMAL_LABELS = {
   dino: "Dinosaurio",
@@ -58,7 +56,11 @@ const ANIMAL_TITLES = {
   libre: require("@/assets/images/ColorearText.png"),
 };
 
-
+const TAB_ROUTES = {
+  inicio: "/inicio",
+  galeria: "/galeria",
+  perfil: "/perfil",
+};
 
 function SizeSlider({ size, setSize }) {
   const barX = useRef(0);
@@ -70,7 +72,7 @@ function SizeSlider({ size, setSize }) {
     let relative = pageX - barX.current;
     relative = Math.max(0, Math.min(SLIDER_WIDTH, relative));
     const newSize = Math.round(
-      MIN_SIZE + (relative / SLIDER_WIDTH) * (MAX_SIZE - MIN_SIZE)
+      MIN_SIZE + (relative / SLIDER_WIDTH) * (MAX_SIZE - MIN_SIZE),
     );
     setSize(newSize);
   };
@@ -81,7 +83,7 @@ function SizeSlider({ size, setSize }) {
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => updateFromPageX(evt.nativeEvent.pageX),
       onPanResponderMove: (evt) => updateFromPageX(evt.nativeEvent.pageX),
-    })
+    }),
   ).current;
 
   return (
@@ -104,7 +106,6 @@ function SizeSlider({ size, setSize }) {
     </View>
   );
 }
-
 
 export default function DrawScreen() {
   const router = useRouter();
@@ -178,11 +179,17 @@ export default function DrawScreen() {
     );
   }
 
-  function handleExit(route) {
+  function handleExit(routeName) {
+    const route = TAB_ROUTES[routeName];
+
+    if (!route) {
+      return;
+    }
+
     if (hasUnsavedChanges) {
-      exitDrawing(router, route); // muestra la alerta de confirmación
+      exitDrawing(router, route);
     } else {
-      router.push(route); // sale directo, no hay nada que perder
+      router.replace(route);
     }
   }
 
@@ -245,7 +252,10 @@ export default function DrawScreen() {
   const DIBUJOS_DIR = FileSystem.documentDirectory + "dibujos/";
 
   async function asegurarCarpetaDibujos() {
-    const info = await FileSystem.getInfoAsync(DIBUJOS_DIR, { md5: false, size: false });
+    const info = await FileSystem.getInfoAsync(DIBUJOS_DIR, {
+      md5: false,
+      size: false,
+    });
     if (!info.exists) {
       await FileSystem.makeDirectoryAsync(DIBUJOS_DIR, { intermediates: true });
     }
@@ -253,17 +263,20 @@ export default function DrawScreen() {
 
   async function guardarDibujo() {
     if (strokes.length === 0) {
-      Alert.alert("Nada que guardar", "Pinta un poco antes de guardar tu dibujo.");
+      Alert.alert(
+        "Nada que guardar",
+        "Pinta un poco antes de guardar tu dibujo.",
+      );
       return;
     }
 
-    console.log('Iniciando guardado...');
+    console.log("Iniciando guardado...");
 
     let thumbnailUri = null;
     const idParaGuardar = currentDrawingId ?? Date.now().toString();
 
     try {
-      console.log('📸 Intentando capturar canvas...');
+      console.log("📸 Intentando capturar canvas...");
       console.log("canvasRef:", canvasRef);
       console.log("canvasRef.current:", canvasRef.current);
 
@@ -274,30 +287,40 @@ export default function DrawScreen() {
         result: "tmpfile",
       });
 
-      console.log('Resultado de captureRef:', result);
+      console.log("Resultado de captureRef:", result);
 
       if (result) {
         // Asegurar que el directorio existe
-        const dirInfo = await FileSystem.getInfoAsync(DIBUJOS_DIR, { md5: false, size: false });
+        const dirInfo = await FileSystem.getInfoAsync(DIBUJOS_DIR, {
+          md5: false,
+          size: false,
+        });
         if (!dirInfo.exists) {
-          console.log('Creando directorio:', DIBUJOS_DIR);
-          await FileSystem.makeDirectoryAsync(DIBUJOS_DIR, { intermediates: true });
+          console.log("Creando directorio:", DIBUJOS_DIR);
+          await FileSystem.makeDirectoryAsync(DIBUJOS_DIR, {
+            intermediates: true,
+          });
         }
 
         thumbnailUri = DIBUJOS_DIR + idParaGuardar + "-" + Date.now() + ".png";
-        console.log('Copiando a:', thumbnailUri);
+        console.log("Copiando a:", thumbnailUri);
 
         await FileSystem.copyAsync({
           from: result,
-          to: thumbnailUri
+          to: thumbnailUri,
         });
 
         // Si ya existía un dibujo con una miniatura anterior, la borramos
         if (currentDrawingId) {
           const dibujoAnterior = await getDrawingById(currentDrawingId);
-          if (dibujoAnterior?.thumbnailUri && dibujoAnterior.thumbnailUri !== thumbnailUri) {
+          if (
+            dibujoAnterior?.thumbnailUri &&
+            dibujoAnterior.thumbnailUri !== thumbnailUri
+          ) {
             try {
-              await FileSystem.deleteAsync(dibujoAnterior.thumbnailUri, { idempotent: true });
+              await FileSystem.deleteAsync(dibujoAnterior.thumbnailUri, {
+                idempotent: true,
+              });
             } catch (e) {
               console.warn("No se pudo borrar la miniatura anterior:", e);
             }
@@ -305,19 +328,22 @@ export default function DrawScreen() {
         }
 
         // Verificar que se guardó
-        const savedFile = await FileSystem.getInfoAsync(thumbnailUri, { md5: false, size: true });
-        console.log('Archivo guardado:', {
+        const savedFile = await FileSystem.getInfoAsync(thumbnailUri, {
+          md5: false,
+          size: true,
+        });
+        console.log("Archivo guardado:", {
           exists: savedFile.exists,
           size: savedFile.exists ? savedFile.size : 0,
-          uri: thumbnailUri
+          uri: thumbnailUri,
         });
 
         if (!savedFile.exists) {
-          console.error('El archivo no se guardó correctamente');
+          console.error("El archivo no se guardó correctamente");
           thumbnailUri = null;
         }
       } else {
-        console.error('captureRef no devolvió resultado');
+        console.error("captureRef no devolvió resultado");
       }
     } catch (e) {
       console.error("Error:", e);
@@ -325,7 +351,7 @@ export default function DrawScreen() {
       console.error("Stack:", e?.stack);
     }
 
-    console.log('Guardando dibujo con thumbnailUri:', thumbnailUri);
+    console.log("Guardando dibujo con thumbnailUri:", thumbnailUri);
 
     try {
       const guardado = await saveDrawing({
@@ -339,7 +365,7 @@ export default function DrawScreen() {
         thumbnailUri,
       });
 
-      console.log('Dibujo guardado exitosamente:', guardado.id);
+      console.log("Dibujo guardado exitosamente:", guardado.id);
 
       setCurrentDrawingId(guardado.id);
       setHasUnsavedChanges(false);
@@ -352,12 +378,11 @@ export default function DrawScreen() {
       console.error("Mensaje:", e?.message);
       console.error("Stack:", e?.stack);
     }
-
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <View style={styles.header}>
           <Image
             source={require("@/assets/images/logo-kidintime.png")}
@@ -373,13 +398,7 @@ export default function DrawScreen() {
                 clearCanvas();
                 setTool("none");
               }}
-            >
-              <Image
-                source={require("@/assets/images/partial-react-logo.png")}
-                style={styles.closeIcon}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
+            ></TouchableOpacity>
           </View>
         </View>
 
@@ -478,7 +497,7 @@ export default function DrawScreen() {
                   <Defs>
                     {strokes.map((stroke) => {
                       const relevantErasers = eraserStrokes.filter(
-                        (e) => e.id > stroke.id
+                        (e) => e.id > stroke.id,
                       );
                       if (relevantErasers.length === 0) return null;
 
@@ -569,7 +588,11 @@ export default function DrawScreen() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       fill="none"
-                      mask={eraserStrokes.length > 0 ? "url(#mask-current)" : undefined}
+                      mask={
+                        eraserStrokes.length > 0
+                          ? "url(#mask-current)"
+                          : undefined
+                      }
                     />
                   )}
 
@@ -591,35 +614,7 @@ export default function DrawScreen() {
           <View style={styles.grass} />
         </View>
 
-        <View style={styles.bottomNav}>
-          <TouchableOpacity
-            style={styles.navBtn}
-            onPress={() => handleExit("/")}
-          >
-            <Image
-              source={require("@/assets/images/inicio1.png")}
-              style={styles.navIcon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navBtn}
-            onPress={() => handleExit("/galeria")}
-          >
-            <Image
-              source={require("@/assets/images/galeria.png")}
-              style={styles.navIcon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navBtn}
-            onPress={() => handleExit("/perfil")}
-          >
-            <Image
-              source={require("@/assets/images/user.png")}
-              style={styles.navIcon}
-            />
-          </TouchableOpacity>
-        </View>
+        <BottomNavBar activeRoute={null} onNavigate={handleExit} />
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -636,7 +631,12 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   logo: { width: 150, height: 80, top: -25 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 10, top: -25 },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    top: -25,
+  },
   saveBtn: {
     backgroundColor: "#378ADD",
     paddingHorizontal: 14,
@@ -644,12 +644,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   saveBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  closeIcon: { width: 36, height: 36 },
-  titulo: { width: width * 0.80, height: 100, marginTop: -45 },
+
+  titulo: { width: width * 0.8, height: 100, marginTop: -45 },
   tools: { flexDirection: "row", gap: 29, marginTop: -10, marginBottom: 1 },
   toolIcon: { width: 55, height: 55, opacity: 0.5 },
   toolActive: { opacity: 1, transform: [{ scale: 1.15 }] },
-  palette: { flexDirection: "row", gap: 10, marginVertical: 14, marginBottom: 20 },
+  palette: {
+    flexDirection: "row",
+    gap: 10,
+    marginVertical: 14,
+    marginBottom: 20,
+  },
   colorDot: {
     width: 22,
     height: 22,
@@ -658,7 +663,12 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   colorDotActive: { borderColor: "#333", transform: [{ scale: 1.2 }] },
-  sliderRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 20 },
+  sliderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
   sliderDotPreview: { backgroundColor: "#555", borderRadius: 999 },
   sliderTrack: { width: SLIDER_WIDTH, height: 30, justifyContent: "center" },
   sliderFill: {
@@ -678,7 +688,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#378ADD",
   },
-  dinoContainer: { flex: 1, width: "100%", alignItems: "center", justifyContent: "flex-end" },
+  dinoContainer: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
   grass: {
     width: "100%",
     height: 35,
@@ -686,15 +701,4 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 60,
     borderTopRightRadius: 60,
   },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    paddingVertical: 12,
-    borderTopWidth: 0.5,
-    borderTopColor: "#e0e0e0",
-    marginBottom: -10,
-  },
-  navBtn: { alignItems: "center", justifyContent: "center", padding: 10 },
-  navIcon: { width: 28, height: 28 },
 });

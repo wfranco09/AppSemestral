@@ -6,7 +6,7 @@ export function exitDrawing(router, route) {
     "¡Los cambios no se guardarán!",
     [
       { text: "Cancelar", style: "cancel" },
-      { text: "Salir", onPress: () => router.push(route) },
+      { text: "Salir", onPress: () => router.replace(route) },
     ]
   );
 }
