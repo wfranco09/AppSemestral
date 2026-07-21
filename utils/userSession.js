@@ -22,3 +22,12 @@ export async function saveUserName(name) {
   await AsyncStorage.setItem(USER_NAME_KEY, cleanName);
   return cleanName;
 }
+
+export async function clearUserProfile() {
+  try {
+    await AsyncStorage.removeItem(USER_NAME_KEY);
+  } catch (error) {
+    console.warn("No se pudo borrar el perfil guardado:", error);
+    throw error;
+  }
+}

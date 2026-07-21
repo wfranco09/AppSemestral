@@ -18,14 +18,9 @@ export default function BienvenidaScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require("@/assets/images/Bienvenida.png")}
+        source={require("@/assets/images/Inicio.png")}
         style={styles.fondo}
         resizeMode="cover"
-      />
-      <Image
-        source={require("@/assets/images/logo-kidintime.png")}
-        style={styles.logo}
-        resizeMode="contain"
       />
     </View>
   );

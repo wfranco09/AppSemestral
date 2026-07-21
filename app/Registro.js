@@ -68,7 +68,7 @@ export default function RegistroScreen() {
     >
       <View style={styles.fondoContainer}>
         <Image
-          source={require("@/assets/images/Bienvenida.png")}
+          source={require("@/assets/images/Registro.png")}
           style={styles.fondo}
           resizeMode="cover"
         />
@@ -83,8 +83,8 @@ export default function RegistroScreen() {
           onChangeText={setNombre}
           placeholder="Escribe tu nombre"
           placeholderTextColor="#aaa"
-          autoFocus
           autoCapitalize="words"
+          autoCorrect={false}
           maxLength={20}
           returnKeyType="done"
           onSubmitEditing={continuar}
@@ -111,13 +111,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   fondoContainer: {
-    height: height * 0.45,
+    height: height * 0.67,
     width,
     overflow: "hidden",
   },
   fondo: {
     width,
-    height: height * 0.45,
+    height: height * 0.66,
   },
   formContainer: {
     flex: 1,

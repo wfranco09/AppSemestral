@@ -1,7 +1,7 @@
-import { loadData, saveData } from '@/utils/storage';
+import { loadData, saveData } from "@/utils/storage";
 import * as FileSystem from "expo-file-system";
 
-const STORAGE_KEY = 'kidintime_dibujos';
+const STORAGE_KEY = "kidintime_dibujos";
 
 // Devuelve todos los dibujos guardados, más recientes primero
 export async function getDrawings() {
@@ -27,8 +27,8 @@ export async function saveDrawing({
   canvasHeight,
   thumbnailUri,
 }) {
-  console.log('Guardando dibujo con thumbnailUri:', thumbnailUri);
-  console.log('Tipo de thumbnailUri:', typeof thumbnailUri);
+  console.log("Guardando dibujo con thumbnailUri:", thumbnailUri);
+  console.log("Tipo de thumbnailUri:", typeof thumbnailUri);
 
   const dibujos = await loadData(STORAGE_KEY, []);
   const fecha = new Date().toISOString();
@@ -49,7 +49,7 @@ export async function saveDrawing({
       };
       dibujos[idx] = actualizado;
       await saveData(STORAGE_KEY, dibujos);
-      console.log('Dibujo actualizado:', actualizado.id);
+      console.log("Dibujo actualizado:", actualizado.id);
       return actualizado;
     }
   }
@@ -66,7 +66,7 @@ export async function saveDrawing({
     thumbnailUri,
   };
   await saveData(STORAGE_KEY, [...dibujos, nuevo]);
-  console.log('Dibujo guardado:', nuevo.id);
+  console.log("Dibujo guardado:", nuevo.id);
   return nuevo;
 }
 
@@ -76,22 +76,51 @@ export async function deleteDrawing(id) {
   const dibujo = dibujos.find((d) => d.id === id);
 
   if (!dibujo) {
-    console.warn('Dibujo no encontrado para eliminar:', id);
+    console.warn("Dibujo no encontrado para eliminar:", id);
     return null;
   }
 
   if (dibujo.thumbnailUri) {
     try {
       await FileSystem.deleteAsync(dibujo.thumbnailUri, { idempotent: true });
-      console.log('Archivo de imagen eliminado:', dibujo.thumbnailUri);
+      console.log("Archivo de imagen eliminado:", dibujo.thumbnailUri);
     } catch (e) {
-      console.warn('No se pudo borrar el archivo de imagen:', e);
+      console.warn("No se pudo borrar el archivo de imagen:", e);
     }
   }
 
   const updatedDrawings = dibujos.filter((d) => d.id !== id);
   await saveData(STORAGE_KEY, updatedDrawings);
-  
-  console.log('Dibujo eliminado:', id);
+
+  console.log("Dibujo eliminado:", id);
   return dibujo;
+}
+
+// Borra todos los dibujos guardados y sus miniaturas
+export async function deleteAllDrawings() {
+  const dibujos = await loadData(STORAGE_KEY, []);
+
+  for (const dibujo of dibujos) {
+    if (!dibujo.thumbnailUri) {
+      continue;
+    }
+
+    try {
+      await FileSystem.deleteAsync(dibujo.thumbnailUri, {
+        idempotent: true,
+      });
+    } catch (error) {
+      console.warn(
+        "No se pudo borrar una miniatura:",
+        dibujo.thumbnailUri,
+        error,
+      );
+    }
+  }
+
+  await saveData(STORAGE_KEY, []);
+
+  console.log("Todos los dibujos fueron eliminados:", dibujos.length);
+
+  return dibujos.length;
 }
