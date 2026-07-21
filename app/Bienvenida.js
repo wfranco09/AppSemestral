@@ -1,32 +1,26 @@
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { Dimensions, Image, StyleSheet, View } from 'react-native';
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { Dimensions, Image, StyleSheet, View } from "react-native";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export default function BienvenidaScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    // Pantalla de carga súper breve: casi no se nota, luego pasa sola.
     const timer = setTimeout(() => {
-      router.replace('/Registro');
+      router.replace("/Registro");
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   return (
     <View style={styles.container}>
       <Image
-        source={require('@/assets/images/Bienvenida.png')}
+        source={require("@/assets/images/Inicio.png")}
         style={styles.fondo}
         resizeMode="cover"
-      />
-      <Image
-        source={require('@/assets/images/logo-kidintime.png')}
-        style={styles.logo}
-        resizeMode="contain"
       />
     </View>
   );
@@ -35,14 +29,14 @@ export default function BienvenidaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   fondo: {
     width,
     height,
-    position: 'absolute',
+    position: "absolute",
   },
   logo: {
     width: width * 0.55,
