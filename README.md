@@ -20,14 +20,6 @@ Este proyecto fue desarrollado como aplicación semestral utilizando **React Nat
 
 El objetivo de KidinTime es ofrecer un espacio digital interactivo donde los usuarios puedan desarrollar su creatividad mediante actividades de dibujo y coloreado, utilizando una interfaz visual sencilla, navegación clara y almacenamiento local de sus creaciones.
 
-## Estado analizado
-
-- **Repositorio:** `wfranco09/AppSemestral`
-- **Rama:** `feature/user-welcome-flow`
-- **Último commit revisado:** `b297c29694d6114af1f0c6197c6c2a5f756ab180`
-- **Versión de la aplicación:** `1.0.0`
-- **Expo SDK:** `54`
-
 ## Funcionalidades principales
 
 ### 1. Flujo de bienvenida y registro
@@ -531,26 +523,19 @@ git clone https://github.com/wfranco09/AppSemestral.git
 ```bash
 cd AppSemestral
 ```
-
-### 3. Cambiar a la rama de trabajo
-
-```bash
-git switch feature/user-welcome-flow
-```
-
-### 4. Instalar dependencias
+### 3. Instalar dependencias
 
 ```bash
 npm install
 ```
 
-### 5. Verificar el código
+### 4. Verificar el código
 
 ```bash
 npm run lint
 ```
 
-### 6. Iniciar Expo
+### 5. Iniciar Expo
 
 ```bash
 npx expo start --clear
@@ -682,44 +667,6 @@ Revisar:
 - Que Expo Go conserve los permisos y datos de la aplicación.
 - Que los datos de Expo Go no hayan sido limpiados.
 
-## Flujo de trabajo con Git
-
-Se recomienda no trabajar directamente sobre `master` ni sobre la rama de integración.
-
-### Crear una rama
-
-```bash
-git switch feature/user-welcome-flow
-git pull origin feature/user-welcome-flow
-git switch -c feature/nombre-de-la-funcion
-```
-
-### Guardar cambios
-
-```bash
-git add .
-git commit -m "Descripción clara del cambio"
-```
-
-### Subir la rama
-
-```bash
-git push -u origin feature/nombre-de-la-funcion
-```
-
-Después se recomienda crear un Pull Request hacia la rama de integración correspondiente.
-
-## Limitaciones actuales
-
-- Solo existe un perfil activo por dispositivo.
-- Los datos se almacenan únicamente de forma local.
-- No existe autenticación con contraseña.
-- No existe sincronización en la nube.
-- No existe respaldo automático.
-- No existe separación de dibujos entre varios perfiles simultáneos.
-- La eliminación del perfil y los dibujos es permanente.
-- La experiencia principal está diseñada para dispositivos móviles.
-
 ## Posibles mejoras futuras
 
 - Soporte para varios perfiles independientes.
@@ -739,24 +686,9 @@ Después se recomienda crear un Pull Request hacia la rama de integración corre
 - Soporte completo para tabletas.
 - Pruebas automatizadas.
 
-## Consideraciones de privacidad
-
-La aplicación no envía el nombre ni los dibujos a servicios externos. La información permanece dentro del almacenamiento local del dispositivo utilizado para ejecutar la aplicación.
-
-No deben incorporarse datos sensibles sin implementar previamente controles adicionales de seguridad, consentimiento y protección de información.
-
-## Uso académico
-
-Este proyecto fue desarrollado con fines académicos como aplicación semestral. Antes de distribuirlo públicamente o utilizarlo comercialmente, el equipo debe revisar:
-
-- Licencia del proyecto.
-- Licencias de imágenes y recursos gráficos.
-- Política de privacidad.
-- Términos de uso.
-- Pruebas en dispositivos reales.
-- Accesibilidad.
-- Requisitos de publicación de Google Play y App Store.
-
 ## Equipo
 
-Proyecto desarrollado por el equipo responsable de **KidinTime / AppSemestral**.
+Proyecto desarrollado por el equipo responsable de **KidinTime**.
+- Winston Franco
+- Joseph Córdoba
+- Guillermo Mas
